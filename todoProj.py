@@ -75,8 +75,8 @@ class TodoApp:
 
         self.tasks = Treeview(self.root, columns=("ID", "Name", "Priority", "Due Date", "Completed"), show="headings")
         self.tasks.pack()
-        self.tasks.heading("ID", text="ID")
         self.tasks.heading("Name", text="Name")
+        self.tasks.heading("ID", text="ID")
         self.tasks.heading("Priority", text="Priority")
         self.tasks.heading("Due Date", text="Due Date")
         self.tasks.heading("Completed", text="Completed")
@@ -85,21 +85,45 @@ class TodoApp:
 
     def update_date(self, event):
         # Update the 'Do By Date' entry with the selected year, month, and day
-        pass
+        self.do_by_date.set(f'{self.year_var.get()}-{self.month_var.get()}-{self.day_var.get()}')
 
     def add_task(self):
-        pass
-        
+        if (self.task_name.get() == "" or self.task_priority == ""
+            or self.do_by_date.get() == ""):
+            messagebox.showerror("Required Fields", "Please enter all fields")
+            return
+
+        self.db.insert(self.task_name.get(), self.task_priority.get()
+                       , self.do_by_date.get())  # Do not need to pass in false, but if I wanted true I would have to
+        self.populate_tasks()
+        self.task_name.set("")
+        self.task_priority.set("Low")
+        self.do_by_date.set(f"{datetime.date.today().strftime('%Y-%m-%d')}")
+        today = datetime.date.today()
+        self.year_var.set(str(today.year))
+
+        # This means that there will always be 2 digits and if there is one it pads a 0 in front
+        self.month_var.set(f'{today.month:02}')
+        self.day_var.set(f'{today.day:02}')
 
 
     def populate_tasks(self):
-        pass
+        for i in self.tasks.get_children():
+            self.tasks.delete(i)
+        for row in self.db.fetch():
+            self.tasks.insert('', 'end', values=row)
 
     def remove_task(self):
-        pass
+        selected_item = self.tasks.selection()[0]
+        task_id = self.tasks.item(selected_item)['values'][0]
+        self.db.remove(task_id)
+        self.populate_tasks()
 
     def complete_task(self):
-        pass
+        selected_item = self.tasks.selection()[0]
+        task_id = self.tasks.item(selected_item)['values'][0]
+        self.db.update(task_id, *self.tasks.item(selected_item)['values'][1:4], is_completed=True)
+        self.populate_tasks()
 
 if __name__ == "__main__":
     root = Tk()
