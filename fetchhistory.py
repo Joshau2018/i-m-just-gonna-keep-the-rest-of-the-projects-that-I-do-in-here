@@ -68,16 +68,31 @@ class HistoryApp:
         self.fetch_btn.grid(column=0, row=4, columnspan=4, pady=10)
 
     def fetch_history(self):
-        pass
+        month = self.month_combo.current() + 1
+        day = self.day_var.get()
+
+        # Url is just a string
+        url = f'https://history.muffinlabs.com/date/{month}/{day}'
+        response = requests.get(url)
+        self.data = ""
+        self.data = response.json()
+        self.populate_text_area()
+
 
     def combobox_changed(self, event):
-        pass
+        self.clear_data()  # Cleared data like this because of line 39
+
 
     def clear_data(self):
-        pass
+        self.text_area.delete('1.0', tk.END)
+        self.data = ""
 
     def populate_text_area(self):
-        pass
+        event_type = self.event_type_var.get()
+        events = self.data['data'][event_type]
+        self.text_area.delete('1.0', tk.END)
+        for event in events:
+            self.text_area.insert(tk.END, f"{event['year']} - {event['text']}\n")
 
 
 if __name__ == "__main__":
