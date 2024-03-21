@@ -140,6 +140,8 @@ class AppWindow(tk.Tk):
         self.filename = filedialog.askopenfilename(initialdir=f"{self.path}", title="Select an image file", filetypes=[("all files", "*.*")])
         self.path = os.path.split(self.filename)[0]
         self.load_image_from_file(self.left_canvas, self.left_image_container)
+        self.right_canvas.itemconfig(None, imaage=None)
+        self.right_canvas.imgef = None
 
     def __hide_show_color_frame(self):
         #print(self.adjust_type_var.get())
