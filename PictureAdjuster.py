@@ -12,12 +12,14 @@ class PictureAdjuster:
         self.__convert_method = None
         self.convert_method_name = None
         self.__adjust_img = None
+        # add yor mod name and fuct to the convert_map
         self.__convert_map = {
             'sepia': PictureAdjuster.__convert_to_sepia,
             'grayscale': PictureAdjuster.__convert_to_grayscale,
             'negative': PictureAdjuster.__convert_to_negative,
             'washout': PictureAdjuster.__convert_to_washout,
             'onecolor': PictureAdjuster.__convert_to_one_color,
+            'IDK': PictureAdjuster.__convert_to_idk,
         }
 
     # takes each pixel and makes modifications to them
@@ -41,14 +43,23 @@ class PictureAdjuster:
         for y in range(height):
             for x in range(width):
                 # read the pixel
-                current_pixel = pixels[x, y]
+                current_pixel = pixels[y, x]
 
                 # process the pixel
                 red, green, blue = current_pixel
                 red, green, blue = self.__convert_method(red, green, blue)
                 current_pixel = (red, green, blue)
-                pixels[x, y] = current_pixel
+                pixels[y, x] = current_pixel
         return self.__adjusted_img
+
+    # create funct, must accept three int values
+    @staticmethod
+    def __convert_to_idk(red: int, green: int, blue: int) -> (int, int, int):
+          if red - blue > 0:
+                    return (red - blue), green, red
+          elif blue - red > 0:
+              return blue, green, blue - red
+          return blue, green, red
 
     @staticmethod  # means cant use self
     def __convert_to_sepia(red: int, green: int, blue: int) -> (int, int, int):
@@ -89,7 +100,7 @@ class PictureAdjuster:
         return self.__adjust()
 
     def __set_img(self, img: Image) -> None:
-        if img is None or img.size != 'RGB':
+        if img is None or img.mode != 'RGB':
             raise ValueError('img must be an RGB image')
         self.__img = img
 
