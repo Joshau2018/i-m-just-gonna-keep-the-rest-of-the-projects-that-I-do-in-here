@@ -1,0 +1,180 @@
+import tkinter as tk
+from tkinter import PhotoImage
+import pandas as pd
+from random import choice
+from pathlib import Path
+from tkinter import filedialog
+import os
+
+BACKGROUND_COLOR = "#B1DDC6"
+BLACK = "#000"
+WHITE = "#FFF"
+
+class AppWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Flash Cards\tCards Remaining: 0\tCards Seen: 0")
+
+        self.config(padx=50, pady=50, bg=BACKGROUND_COLOR)
+
+        self.to_learn = None        # left to learn 
+        self.current_card = {}      # can we get another card
+        self.can_get_next = False   # can we get another card
+        self.flip_timer = None      # timer to turn card
+        self.filename = None        # data set file name
+        self.card_flip_time = 3000  # default timer
+        self.column = 0             # column form data for ront of card
+        self.time_menu_items = {}   # items for time 
+        self.column_menu_items = {}  # items for colmns
+        self.start_pause_menu_items = {}  # items for pause
+        self.font_size_title_menu_items = {} # front size title
+        self.font_size_body_menu_items = {}  # front size for the body
+        self.isStarted = False      # have we started
+        self.cards_remaining = 0    # cards left in to_learn set
+        self.cards_seen = 0         # cards seen
+        #self.title_template = lambda remaining, seen: f"Flash Cards\tCards Remaining: {remaining}\tCards Seen: {seen}"
+
+        self.__build_components()
+
+    def __build_components(self):
+        # Menu
+        menu = tk.Menu()
+        self.config(menu=menu)
+        file_menu = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label="Flash Card Set", menu=file_menu)
+        file_menu.add_command(label="Open", command=self.__browse_files)
+
+        # Time menu
+        
+        
+        # Column Menu
+        self.column_menu = tk.Menu(menu)
+        menu.add_cascade(label="Columns", menu=self.column_menu)
+        self.column_items = ["1", "2"]
+        self.column_item_values = [0, 1]
+        for i, item in enumerate(self.column_items):
+            column_check_var = tk.IntVar()
+            self.column_menu_items[item] = column_check_var
+            self.column_menu.add_checkbutton(label=item, variable=column_check_var, onvalue=1, offvalue=0,
+                                             command=lambda column_item=item, column_value=self.column_item_values[i]:
+                                             self.__change_columns(column_value, column_item))
+        self.column_menu_items[self.column_items[0]].set(1)
+
+        # Start/Pause Menu
+        self.start_pause_menu = tk.Menu(menu)
+        menu.add_cascade(label="Start/Pause", menu=self.start_pause_menu)
+        self.start_pause_items = ["Start", "Pause"]
+        for i, item in enumerate(self.start_pause_items):
+            start_pause_check_var = tk.IntVar()
+            self.start_pause_menu_items[item] = start_pause_check_var
+            self.start_pause_menu.add_checkbutton(label=item, variable=start_pause_check_var, onvalue=1, offvalue=0,
+                                           command=lambda start_pause_item=item, start_pause_value=self.start_pause_items[i]:
+                                           self.__start_pause(start_pause_value, start_pause_item))
+        self.start_pause_var = tk.StringVar(value='Pause')
+        self.start_pause_menu_items[self.start_pause_items[1]].set(1)
+
+        # Menu for font size
+        # Title
+        self.font_size_title = tk.Menu(menu)
+        menu.add_cascade(label="Title Font Size", menu=self.font_size_title)
+        self.font_size_title_items = ["14", "16", "18", "20", "22", "24", "26"]
+        self.font_size_title_item_values = [14, 16, 18, 20, 22, 24, 26]
+        for i, item in enumerate(self.font_size_title_items):
+            font_size_title_check_var = tk.IntVar()
+            self.font_size_title_menu_items[item] = font_size_title_check_var
+            self.font_size_title.add_checkbutton(label=item, variable=font_size_title_check_var, onvalue=1, offvalue=0,
+                                           command=lambda font_size_title_item=item, font_size_title_value=self.font_size_title_item_values[i]:
+                                           self.__change_font_size_title(font_size_title_value, font_size_title_item))
+        self.font_size_title_menu_items[self.font_size_title_items[3]].set(1)
+        title_starting_font_size = self.font_size_title_item_values[3]
+
+        # Body
+        self.font_size_body = tk.Menu(menu)
+        menu.add_cascade(label="Body Font Size", menu=self.font_size_body)
+        self.font_size_body_items = ["24", "28", "32", "36", "40", "44", "48"]
+        self.font_size_body_item_values = [24, 28, 32, 36, 40, 44, 48]
+        for i, item in enumerate(self.font_size_body_items):
+            font_size_body_check_var = tk.IntVar()
+            self.font_size_body_menu_items[item] = font_size_body_check_var
+            self.font_size_body.add_checkbutton(label=item, variable=font_size_body_check_var, onvalue=1, offvalue=0,
+                                           command=lambda font_size_body_item=item, font_size_body_value=self.font_size_body_item_values[i]:
+                                           self.__change_font_size_body(font_size_body_value, font_size_body_item))
+        self.font_size_body_menu_items[self.font_size_body_items[3]].set(1)
+        body_starting_font_size = self.font_size_body_item_values[3]
+
+
+        # Canvas
+        
+        
+        # Buttons
+        self.cross_image = PhotoImage(file="../../../Desktop/flashcard_starter/images/wrong.png")
+        self.unknown_button = tk.Button(image=self.cross_image, highlightthickness=0, command=self.__next_card)
+        self.unknown_button.grid(row=1, column=0)
+
+        self.check_image = PhotoImage(file="../../../Desktop/flashcard_starter/images/right.png")
+        self.known_button = tk.Button(image=self.check_image, highlightthickness=0, command=self.__is_known)
+        self.known_button.grid(row=1, column=1)
+
+    # Text wrap
+    def __wrap_text(self, text, width):
+        words = text.split()
+        lines = []
+        current_line = []
+        current_length = 0
+
+        for word in words:
+            if current_length + len(word) > width:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+                current_length = len(word)
+            else:
+                current_line.append(word)
+                current_length += len(word) + 1
+        lines.append(' '.join(current_line))
+        return '\n'.join(lines)
+    
+    # Load data for flash cards
+    def __browse_files(self):
+        pass
+
+    # Change time
+    def __change_time(self, flip_time, item):
+        pass
+        
+    # Flip flash card with click
+    def __on_canvas_click(self, event):
+        pass
+        
+    # Change which column in data is card front
+    def __change_columns(self, column, item):
+        pass
+    
+    # Pause the timer
+    def __start_pause(self, start_pause_value, start_pause_item):
+        pass
+        
+    # Change font size for title
+    def __change_font_size_title(self, font_size_title, item):
+        pass
+
+    # Change font size 
+    def __change_font_size_body(self, font_size_body, item):
+        pass
+
+    # Show the next card
+    def __next_card(self):
+        pass
+
+    # Flip the care over
+    def __flip_card(self):
+        pass
+
+    # Remove the card from the pack if it is known
+    def __is_known(self):
+        pass
+
+
+if __name__ == '__main__':
+    fc = AppWindow()
+    fc.mainloop()
+
