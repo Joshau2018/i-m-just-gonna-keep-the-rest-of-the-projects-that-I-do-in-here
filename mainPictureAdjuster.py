@@ -1,3 +1,4 @@
+# Joshua Klarich
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog
@@ -77,23 +78,35 @@ class AppWindow(tk.Tk):
         self.rb_sepia = tk.Radiobutton(self.adjust_select_frame, text="Sepia", variable=self.adjust_type_var,
                                        value="sepia", background="white", command=self.__hide_show_color_frame)
         self.rb_sepia.pack(padx=10, pady=2, anchor=tk.W)
+
         self.rb_grayscale = tk.Radiobutton(self.adjust_select_frame, text="Grayscale", variable=self.adjust_type_var,
                                            value="grayscale", background="white", command=self.__hide_show_color_frame)
         self.rb_grayscale.pack(padx=10, pady=2, anchor=tk.W)
+
         self.rb_negative = tk.Radiobutton(self.adjust_select_frame, text="Negative", variable=self.adjust_type_var,
                                           value="negative", background="white", command=self.__hide_show_color_frame)
         self.rb_negative.pack(padx=10, pady=2, anchor=tk.W)
+
         self.rb_washout = tk.Radiobutton(self.adjust_select_frame, text="Washout", variable=self.adjust_type_var,
                                          value="washout", background="white", command=self.__hide_show_color_frame)
         self.rb_washout.pack(padx=10, pady=2, anchor=tk.W)
+
         self.rb_onecolor = tk.Radiobutton(self.adjust_select_frame, text="One Color", variable=self.adjust_type_var,
                                           value="onecolor", background="white", command=self.__hide_show_color_frame)
         self.rb_onecolor.pack(padx=10, pady=2, anchor=tk.W)
+
+        # add a radio button for a new adjustment method
+        # should b 2 lines of codes ex
+        self.rb_IDK = tk.Radiobutton(self.adjust_select_frame, text="IDK", variable=self.adjust_type_var,
+                                     value='IDK', background="white", command=self.__hide_show_color_frame)
+        self.rb_IDK.pack(padx=10, pady=2, anchor=tk.W)
+
         self.__hide_show_color_frame()
+
 
         # Canvas
         self.left_canvas = tk.Canvas(self.left_frame, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, highlightcolor="red",
-                                     highlightbackground="red", highlightthickness=1) # self.left_frame at he begginng gives it a parrent frame
+                                     highlightbackground="red", highlightthickness=1)  # self.left_frame at the begginng gives it a parrent frame
         self.left_image_container = self.left_canvas.create_image(CANVAS_WIDTH // 2, CANVAS_HEIGHT // 2)
         self.left_canvas.grid(row=0, column=0)
         self.right_canvas = tk.Canvas(self.right_frame, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, highlightcolor="red",
@@ -140,7 +153,7 @@ class AppWindow(tk.Tk):
         self.filename = filedialog.askopenfilename(initialdir=f"{self.path}", title="Select an image file", filetypes=[("all files", "*.*")])
         self.path = os.path.split(self.filename)[0]
         self.load_image_from_file(self.left_canvas, self.left_image_container)
-        self.right_canvas.itemconfig(None, imaage=None)
+        # self.right_canvas.itemconfig(None, image=None)
         self.right_canvas.imgef = None
 
     def __hide_show_color_frame(self):
