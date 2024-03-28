@@ -154,7 +154,7 @@ class AppWindow(tk.Tk):
         self.path = os.path.split(self.filename)[0]
         self.load_image_from_file(self.left_canvas, self.left_image_container)
         # self.right_canvas.itemconfig(None, image=None)
-        self.right_canvas.imgef = None
+        self.right_canvas.imgref = None
 
     def __hide_show_color_frame(self):
         #print(self.adjust_type_var.get())
