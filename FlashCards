@@ -10,6 +10,7 @@ BACKGROUND_COLOR = "#B1DDC6"
 BLACK = "#000"
 WHITE = "#FFF"
 
+
 class AppWindow(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -17,22 +18,22 @@ class AppWindow(tk.Tk):
 
         self.config(padx=50, pady=50, bg=BACKGROUND_COLOR)
 
-        self.to_learn = None        # left to learn 
-        self.current_card = {}      # can we get another card
-        self.can_get_next = False   # can we get another card
-        self.flip_timer = None      # timer to turn card
-        self.filename = None        # data set file name
+        self.to_learn = None  # left to learn
+        self.current_card = {}  # can we get another card
+        self.can_get_next = False  # can we get another card
+        self.flip_timer = None  # timer to turn card
+        self.filename = None  # data set file name
         self.card_flip_time = 3000  # default timer
-        self.column = 0             # column form data for ront of card
-        self.time_menu_items = {}   # items for time 
-        self.column_menu_items = {}  # items for colmns
+        self.column = 0  # column form data for front of card
+        self.time_menu_items = {}  # items for time
+        self.column_menu_items = {}  # items for columns
         self.start_pause_menu_items = {}  # items for pause
-        self.font_size_title_menu_items = {} # front size title
+        self.font_size_title_menu_items = {}  # front size title
         self.font_size_body_menu_items = {}  # front size for the body
-        self.isStarted = False      # have we started
-        self.cards_remaining = 0    # cards left in to_learn set
-        self.cards_seen = 0         # cards seen
-        #self.title_template = lambda remaining, seen: f"Flash Cards\tCards Remaining: {remaining}\tCards Seen: {seen}"
+        self.isStarted = False  # have we started
+        self.cards_remaining = 0  # cards left in to_learn set
+        self.cards_seen = 0  # cards seen
+        self.title_template = lambda remaining, seen: f"Flash Cards\tCards Remaining: {remaining}\tCards Seen: {seen}"
 
         self.__build_components()
 
@@ -45,8 +46,20 @@ class AppWindow(tk.Tk):
         file_menu.add_command(label="Open", command=self.__browse_files)
 
         # Time menu
-        
-        
+        self.time_menu = tk.Menu(menu)
+        menu.add_cascade(label="Time", menu=self.time_menu)
+        # place a check near the last selected timme
+        self.time_items = ["3 seconds", "6 seconds", "9 seconds",
+                           "12 seconds", "Timer Off"]
+        self.time_items_seconds = [3000, 6000, 9000, 12000, 0]  # the 0 is a fill value
+        for i, item in enumerate(self.time_items):
+            time_check_var = tk.IntVar()
+            self.time_menu_items[item] = time_check_var
+            self.time_menu.add_checkbutton(label=item,variable=time_check_var, onvalue=1, offvalue=0,
+                                           command=lambda time_item=item, time_seconds=self.time_items_seconds[i]:
+                                           self.__change_time(time_seconds, time_item))
+            self.time_menu_items[self.time_items[0]].set(1)
+
         # Column Menu
         self.column_menu = tk.Menu(menu)
         menu.add_cascade(label="Columns", menu=self.column_menu)
@@ -68,8 +81,9 @@ class AppWindow(tk.Tk):
             start_pause_check_var = tk.IntVar()
             self.start_pause_menu_items[item] = start_pause_check_var
             self.start_pause_menu.add_checkbutton(label=item, variable=start_pause_check_var, onvalue=1, offvalue=0,
-                                           command=lambda start_pause_item=item, start_pause_value=self.start_pause_items[i]:
-                                           self.__start_pause(start_pause_value, start_pause_item))
+                                                  command=lambda start_pause_item=item,
+                                                                 start_pause_value=self.start_pause_items[i]:
+                                                  self.__start_pause(start_pause_value, start_pause_item))
         self.start_pause_var = tk.StringVar(value='Pause')
         self.start_pause_menu_items[self.start_pause_items[1]].set(1)
 
@@ -83,8 +97,11 @@ class AppWindow(tk.Tk):
             font_size_title_check_var = tk.IntVar()
             self.font_size_title_menu_items[item] = font_size_title_check_var
             self.font_size_title.add_checkbutton(label=item, variable=font_size_title_check_var, onvalue=1, offvalue=0,
-                                           command=lambda font_size_title_item=item, font_size_title_value=self.font_size_title_item_values[i]:
-                                           self.__change_font_size_title(font_size_title_value, font_size_title_item))
+                                                 command=lambda font_size_title_item=item,
+                                                                font_size_title_value=self.font_size_title_item_values[
+                                                                    i]:
+                                                 self.__change_font_size_title(font_size_title_value,
+                                                                               font_size_title_item))
         self.font_size_title_menu_items[self.font_size_title_items[3]].set(1)
         title_starting_font_size = self.font_size_title_item_values[3]
 
@@ -97,15 +114,32 @@ class AppWindow(tk.Tk):
             font_size_body_check_var = tk.IntVar()
             self.font_size_body_menu_items[item] = font_size_body_check_var
             self.font_size_body.add_checkbutton(label=item, variable=font_size_body_check_var, onvalue=1, offvalue=0,
-                                           command=lambda font_size_body_item=item, font_size_body_value=self.font_size_body_item_values[i]:
-                                           self.__change_font_size_body(font_size_body_value, font_size_body_item))
+                                                command=lambda font_size_body_item=item,
+                                                               font_size_body_value=self.font_size_body_item_values[i]:
+                                                self.__change_font_size_body(font_size_body_value, font_size_body_item))
         self.font_size_body_menu_items[self.font_size_body_items[3]].set(1)
         body_starting_font_size = self.font_size_body_item_values[3]
 
-
         # Canvas
-        
-        
+        self.card_front_img = PhotoImage(file="images/ccard_front.png")
+        self.card_back_img = PhotoImage(file="images/card_back.png")
+        self.canvas_width = self.card_front_img.width()
+        self.canvas_height = self.card_front_img.height()
+        self.canvas_center_x = (self.canvas_width // 2)
+        self.canvas_center_y = (self.canvas_height // 2)
+        self.canvas_title_y = int(self.canvas_height * 0.18)
+        self.canvas_body_y = int(self.canvas_height * 0.45)
+        self.canvas = tk.Canvas(width=self.canvas_width, height=self.canvas_height)
+        self.canvas.bind("<Button-1>", self.__on_canvas_click)
+
+        # Write stuff on canvas
+        self.card_background = self.canvas.create_image(self.canvas_center_x, self.canvas_center_y, image=self.card_front_img)
+        self.card_title = self.canvas.create_text(self.canvas_center_x, self.canvas_title_y, text="Header",
+                                                  font=("Arial", title_starting_font_size, "italic")
+                                                  )
+        self.canvas.config(bg=BACKGROUND_COLOR, highlightthickness=0)
+        self.canvas.grid(row=0, column=0, columnspan=2)
+
         # Buttons
         self.cross_image = PhotoImage(file="../../../Desktop/flashcard_starter/images/wrong.png")
         self.unknown_button = tk.Button(image=self.cross_image, highlightthickness=0, command=self.__next_card)
@@ -132,32 +166,64 @@ class AppWindow(tk.Tk):
                 current_length += len(word) + 1
         lines.append(' '.join(current_line))
         return '\n'.join(lines)
-    
+
     # Load data for flash cards
     def __browse_files(self):
-        pass
+        path = os.path.join(os.getcwd(), 'data')
+        self.filename = filedialog.askopenfilename(
+            initialdir=f'{path}', title='select a file',
+            filetypes=(('csv files', '*.csv*'),)
+        )
+        try:
+            data = pd.read_csv(self.filename)
+        except FileNotFoundError:
+            data = pd.read_csv('data/french_words.csv')
+
+        self.to_learn = data.to_dict(orient='records')
+
+        self.cards_remaining = len(self.to_learn)
+        self.cards_seen = 0
+
+        self.title(self.title_template(self.cards_remaining, self.cards_seen))
+
+        self.can_get_next = True
+        if self.card_flip_time != 0:
+            self.flip_tim = self.after(self.card_flip_time,
+                                       func=self.__flip_card())
+        self.__next_card()
+
 
     # Change time
     def __change_time(self, flip_time, item):
-        pass
+        if self.flip_timer is not None:
+            self.after_cancel(self.flip_timer)
+        for name in self.time_items:
+            if name == item:
+                self.time_menu_items[name].set(1)
+            else:
+                self.time_menu_items[name].set(0)
+        self.card_flip_time = flip_time
+        if self.card_flip_time != 0:
+            self.flip_timer = self.after(self.card_flip_time, func=self.__flip_card())
         
+
     # Flip flash card with click
     def __on_canvas_click(self, event):
         pass
-        
+
     # Change which column in data is card front
     def __change_columns(self, column, item):
         pass
-    
+
     # Pause the timer
     def __start_pause(self, start_pause_value, start_pause_item):
         pass
-        
+
     # Change font size for title
     def __change_font_size_title(self, font_size_title, item):
         pass
 
-    # Change font size 
+    # Change font size
     def __change_font_size_body(self, font_size_body, item):
         pass
 
@@ -177,4 +243,3 @@ class AppWindow(tk.Tk):
 if __name__ == '__main__':
     fc = AppWindow()
     fc.mainloop()
-
