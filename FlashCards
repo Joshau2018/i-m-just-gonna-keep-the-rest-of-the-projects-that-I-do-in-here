@@ -55,7 +55,7 @@ class AppWindow(tk.Tk):
         for i, item in enumerate(self.time_items):
             time_check_var = tk.IntVar()
             self.time_menu_items[item] = time_check_var
-            self.time_menu.add_checkbutton(label=item,variable=time_check_var, onvalue=1, offvalue=0,
+            self.time_menu.add_checkbutton(label=item, variable=time_check_var, onvalue=1, offvalue=0,
                                            command=lambda time_item=item, time_seconds=self.time_items_seconds[i]:
                                            self.__change_time(time_seconds, time_item))
             self.time_menu_items[self.time_items[0]].set(1)
@@ -81,8 +81,7 @@ class AppWindow(tk.Tk):
             start_pause_check_var = tk.IntVar()
             self.start_pause_menu_items[item] = start_pause_check_var
             self.start_pause_menu.add_checkbutton(label=item, variable=start_pause_check_var, onvalue=1, offvalue=0,
-                                                  command=lambda start_pause_item=item,
-                                                                 start_pause_value=self.start_pause_items[i]:
+                                                  command=lambda start_pause_item=item, start_pause_value=self.start_pause_items[i]:
                                                   self.__start_pause(start_pause_value, start_pause_item))
         self.start_pause_var = tk.StringVar(value='Pause')
         self.start_pause_menu_items[self.start_pause_items[1]].set(1)
@@ -133,10 +132,15 @@ class AppWindow(tk.Tk):
         self.canvas.bind("<Button-1>", self.__on_canvas_click)
 
         # Write stuff on canvas
-        self.card_background = self.canvas.create_image(self.canvas_center_x, self.canvas_center_y, image=self.card_front_img)
+        self.card_background = self.canvas.create_image(self.canvas_center_x, self.canvas_center_y,
+                                                        image=self.card_front_img)
         self.card_title = self.canvas.create_text(self.canvas_center_x, self.canvas_title_y, text="Header",
                                                   font=("Arial", title_starting_font_size, "italic")
                                                   )
+        # card body here
+        self.card_body = self.canvas.create_text(self.canvas_center_x, self.canvas_body_y,
+                                                 text=self.__wrap_text,
+                                                 front=("Arial", body_starting_font_size, "bold"))
         self.canvas.config(bg=BACKGROUND_COLOR, highlightthickness=0)
         self.canvas.grid(row=0, column=0, columnspan=2)
 
@@ -192,7 +196,6 @@ class AppWindow(tk.Tk):
                                        func=self.__flip_card())
         self.__next_card()
 
-
     # Change time
     def __change_time(self, flip_time, item):
         if self.flip_timer is not None:
@@ -205,39 +208,107 @@ class AppWindow(tk.Tk):
         self.card_flip_time = flip_time
         if self.card_flip_time != 0:
             self.flip_timer = self.after(self.card_flip_time, func=self.__flip_card())
-        
 
     # Flip flash card with click
     def __on_canvas_click(self, event):
-        pass
+        if self.card_flip_time != 0:
+            return
+        self.__flip_card()
 
     # Change which column in data is card front
     def __change_columns(self, column, item):
-        pass
+        for name in self.column_items:
+            if name == item:
+                self.column_menu_items[name].set(1)
+            else:
+                self.column_menu_items[name].set(0)
+        self.column = column
 
     # Pause the timer
     def __start_pause(self, start_pause_value, start_pause_item):
-        pass
+        for name in self.start_pause_items:
+            if name == start_pause_item:
+                self.start_pause_menu_items[name].set(1)
+            else:
+                self.start_pause_menu_items[name].set(0)
+        if start_pause_value == 'Start':
+            self.isStarted = True
+            if self.can_get_next:
+                self.__next_card()
+            elif self.card_flip_time != 0:
+                self.flip_timer = self.after(self.card_flip_time, func=self.__flip_card)
+        else:
+            self.isStarted = False
+            if self.flip_timer is not None:
+                self.after_cancel(self.flip_timer)
 
     # Change font size for title
     def __change_font_size_title(self, font_size_title, item):
-        pass
+        for name in self.font_size_title_items:
+            if name == item:
+                self.font_size_title_menu_items[name].set(1)
+            else:
+                self.font_size_title_menu_items[name].set(0)
+        self.canvas.itemconfig(self.card_title, font=("Arial", font_size_title, "bold"))
+
 
     # Change font size
     def __change_font_size_body(self, font_size_body, item):
-        pass
+        for name in self.font_size_body_items:
+            if name == item:
+                self.font_size_body_menu_items[name].set(1)
+            else:
+                self.font_size_body_menu_items[name].set(0)
+        self.canvas.itemconfig(self.card_body, font=("Arial", font_size_body, "bold"))
 
     # Show the next card
     def __next_card(self):
-        pass
+        if not self.isStarted:
+            return
+        if not self.can_get_next:
+            return
+        if self.card_flip_time is not None and self.card_flip_time != 0:
+            self.after_cancel(self.flip_timer)
+        self.current_card = choice(self.to_learn)
+        question_key = list(self.current_card.keys())[self.column]
+        question_value = self.__wrap_text(self.current_card[question_key], 40)
+        self.canvas.itemconfig(self.card_title, text=question_key, fill=BLACK)
+        self.canvas.itemconfig(self.card_body, text=question_value, fill=BLACK)
+        self.canvas.itemconfig(self.card_background, image=self.card_front_img)
+        self.can_get_next = False
+        self.cards_seen += 1
+        self.title(self.title_template(self.cards_remaining, self.cards_seen))
+        if self.card_flip_time != 0:
+            self.flip_timer = self.after(self.card_flip_time, func=self.__flip_card)
 
     # Flip the care over
     def __flip_card(self):
-        pass
+        if not self.isStarted:
+            return
+        self.can_get_next = True
+        answer_key = list(self.current_card.keys())[not self.column]
+        answer_value = self.__wrap_text(self.current_card[answer_key], 40)
+        self.canvas.itemconfig(self.card_title, text=answer_key, fill=WHITE)
+        self.canvas.itemconfig(self.card_body, text=answer_value, fill=WHITE)
+        self.canvas.itemconfig(self.card_background, image=self.card_back_img)
 
     # Remove the card from the pack if it is known
     def __is_known(self):
-        pass
+        if not self.isStarted:
+            return
+        if self.can_get_next:
+            return
+        self.to_learn.remove(self.current_card)
+        self.words_to_learn = pd.DataFrame(self.to_learn)
+        if "_words_to_learn" not in self.filename:
+            filename_temp = self.filename[:-4] + "_words_to_learn.csv"
+        else:
+            filename_temp = self.filename
+        self.cards_remaining -= 1
+        self.title(self.title_template(self.cards_remaining, self.cards_seen))
+
+        self.words_to_learn.to_csv(filename_temp, index=False)
+        self.__next_card()
 
 
 if __name__ == '__main__':
